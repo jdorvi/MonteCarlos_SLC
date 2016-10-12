@@ -1,0 +1,86 @@
+distribution,description
+alpha,An alpha continuous random variable.
+anglit,An anglit continuous random variable.
+arcsine,An arcsine continuous random variable.
+beta,A beta continuous random variable.
+betaprime,A beta prime continuous random variable.
+bradford,A Bradford continuous random variable.
+burr,A Burr continuous random variable.
+cauchy,A Cauchy continuous random variable.
+chi,A chi continuous random variable.
+chi2,A chi-squared continuous random variable.
+cosine,A cosine continuous random variable.
+dgamma,A double gamma continuous random variable.
+dweibull,A double Weibull continuous random variable.
+erlang,An Erlang continuous random variable.
+expon,An exponential continuous random variable.
+exponnorm,An exponentially modified Normal continuous random variable.
+exponweib,An exponentiated Weibull continuous random variable.
+exponpow,An exponential power continuous random variable.
+f,An F continuous random variable.
+fatiguelife,A fatigue-life (Birnbaum-Saunders) continuous random variable.
+fisk,A Fisk continuous random variable.
+foldcauchy,A folded Cauchy continuous random variable.
+foldnorm,A folded normal continuous random variable.
+frechet_r,A Frechet right (or Weibull minimum) continuous random variable.
+frechet_l,A Frechet left (or Weibull maximum) continuous random variable.
+genlogistic,A generalized logistic continuous random variable.
+gennorm,A generalized normal continuous random variable.
+genpareto,A generalized Pareto continuous random variable.
+genexpon,A generalized exponential continuous random variable.
+genextreme,A generalized extreme value continuous random variable.
+gausshyper,A Gauss hypergeometric continuous random variable.
+gamma,A gamma continuous random variable.
+gengamma,A generalized gamma continuous random variable.
+genhalflogistic,A generalized half-logistic continuous random variable.
+gilbrat,A Gilbrat continuous random variable.
+gompertz,A Gompertz (or truncated Gumbel) continuous random variable.
+gumbel_r,A right-skewed Gumbel continuous random variable.
+gumbel_l,A left-skewed Gumbel continuous random variable.
+halfcauchy,A Half-Cauchy continuous random variable.
+halflogistic,A half-logistic continuous random variable.
+halfnorm,A half-normal continuous random variable.
+halfgennorm,The upper half of a generalized normal continuous random variable.
+hypsecant,A hyperbolic secant continuous random variable.
+invgamma,An inverted gamma continuous random variable.
+invgauss,An inverse Gaussian continuous random variable.
+invweibull,An inverted Weibull continuous random variable.
+johnsonsb,A Johnson SB continuous random variable.
+johnsonsu,A Johnson SU continuous random variable.
+ksone,General Kolmogorov-Smirnov one-sided test.
+kstwobign,Kolmogorov-Smirnov two-sided test for large N.
+laplace,A Laplace continuous random variable.
+logistic,A logistic (or Sech-squared) continuous random variable.
+loggamma,A log gamma continuous random variable.
+loglaplace,A log-Laplace continuous random variable.
+lognorm,A lognormal continuous random variable.
+lomax,A Lomax (Pareto of the second kind) continuous random variable.
+maxwell,A Maxwell continuous random variable.
+mielke,A Mielke’s Beta-Kappa continuous random variable.
+nakagami,A Nakagami continuous random variable.
+ncx2,A non-central chi-squared continuous random variable.
+ncf,A non-central F distribution continuous random variable.
+nct,A non-central Student’s T continuous random variable.
+norm,A normal continuous random variable.
+pareto,A Pareto continuous random variable.
+pearson3,A pearson type III continuous random variable.
+powerlaw,A power-function continuous random variable.
+powerlognorm,A power log-normal continuous random variable.
+powernorm,A power normal continuous random variable.
+rdist,An R-distributed continuous random variable.
+reciprocal,A reciprocal continuous random variable.
+rayleigh,A Rayleigh continuous random variable.
+rice,A Rice continuous random variable.
+recipinvgauss,A reciprocal inverse Gaussian continuous random variable.
+semicircular,A semicircular continuous random variable.
+t,A Student’s T continuous random variable.
+triang,A triangular continuous random variable.
+truncexpon,A truncated exponential continuous random variable.
+truncnorm,A truncated normal continuous random variable.
+tukeylambda,A Tukey-Lamdba continuous random variable.
+uniform,A uniform continuous random variable.
+vonmises,A Von Mises continuous random variable.
+wald,A Wald continuous random variable.
+weibull_min,A Frechet right (or Weibull minimum) continuous random variable.
+weibull_max,A Frechet left (or Weibull maximum) continuous random variable.
+wrapcauchy,A wrapped Cauchy continuous random variable.
