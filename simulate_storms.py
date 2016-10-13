@@ -1,22 +1,26 @@
 # -*- coding: utf-8 -*-
 """
-Spyder Editor
+This is a script for simulating a series of random storm events from 
+distributions fitted to historical observations. 
 
-This is a temporary script file.
+author: j. dorvinen
+email: jdorvi_at_gmail_dot_com
+date: 10/13/2016
 """
 
-# In[]
+# <codecell>
 import os
 import numpy as np
 import scipy.stats as st
 import pandas as pd
-# In[]
+# <codecell>
 outpath = "/home/rannikko/git/"
 outfile = "test1.csv"
 outputfile = os.path.join(outpath, outfile)
-# In[]
+# <codecell>
 def get_interim(rnv):
-    '''Estimate time between storms based on a folded Cauchy distribution'''
+    '''Estimate time between storms based on a folded Cauchy distribution. The
+    given configuration gives a period of hours as an integer.'''
     c = 0.63
     loc = 25.94
     scale = 137.16
@@ -26,17 +30,21 @@ def get_interim(rnv):
     return interim
 
 def get_storm_len(rnv):
-    '''Storm length is modeled by a generalized pareto distribution'''
+    '''Storm length is modeled by a generalized Pareto distribution. The given
+    configuration produces a storm of some hours length as an integer.'''
+    # distribution fitting paramters
     c = -0.054     # -0.02
     loc = 1.9853   #  3.0
-    scale = 15.852 # 14.16 
+    scale = 15.852 # 14.16
+    # storm_len is sampled via the fitted quantile function.
     storm_len = int(round(loc + (((1-rnv)**-c)-1)*scale/c)) 
     #storm_len2 = st.genpareto.rvs(c=c, loc=loc, scale=scale, discrete=True)
     #storm_len = [storm_len1, storm_len2]
     return storm_len
 
 def get_hsig(rnv, storm_len):
-    '''Maximum Hsig is modeled by a generalized pareto distribution'''
+    '''Maximum Hsig is modeled by a generalized Pareto distribution. In the 
+    current configuration Hsig is measured in meters.'''
     c = -0.17228
     loc = 3.1125
     scale = 1.2256
@@ -46,7 +54,7 @@ def get_hsig(rnv, storm_len):
     return hsig
 
 def get_a_hsig(rnv, hsig):
-    '''Average Hsig is modeled by a generalized pareto distribution'''
+    '''Average Hsig is modeled by a generalized Pareto distribution'''
     c = -0.21576
     loc = 3.0766
     scale = 0.59362
@@ -89,7 +97,7 @@ def get_tide():
     #tide = [tide1, tide2]
     return tide
 
-# In[]
+# <codecell>
 i = 0
 storm = []
 while i < 100000:
@@ -103,12 +111,12 @@ tps2 = [storm[i][1] for i in range(100000)]
 tp1 = pd.Series(data=tps1)
 tp2 = pd.Series(data=tps2)
     
-# In[]
+# <codecell>
 i = 0
 Time = [0]
 max_time = 1000*8766
 
-# In[]
+# <codecell>
 %%timeit
 i = 0
 Time = [0]
@@ -125,13 +133,19 @@ with open(outputfile, 'w') as outfile:
         a_tps = get_a_tps(rnv[5], tps)
         tide = get_tide()
         raw_line = "{:>8},{:>8},{:>8.3f},{:>8.2f},{:>8.2f},{:>8.2f},{:>8.2f}\n"
-        line = raw_line.format(interim, storm_len, tide, hsig, a_hsig, tps, a_tps)
+        line = raw_line.format(interim,
+                               storm_len,
+                               tide,
+                               hsig,
+                               a_hsig,
+                               tps,
+                               a_tps)
         outfile.write(line)
         
         Time.append(Time[i]+interim+storm_len)
         i += 1
 
-# In[]
+# <codecell>
 import scipy as sp
 import scipy.stats as st
 st.foldcauchy.rvs()
