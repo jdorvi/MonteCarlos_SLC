@@ -9,6 +9,7 @@ This is a temporary script file.
 import os
 import numpy as np
 import scipy.stats as st
+import pandas as pd
 # In[]
 outpath = "C:/Users/jdorvinen/Documents/Jared/Projects/East Hampton/"
 outfile = "test1.csv"
@@ -35,48 +36,88 @@ def get_storm_len(rnv):
     return storm_len
 
 def get_hsig(rnv, storm_len):
+    '''Maximum Hsig is modeled by a generalized pareto distribution'''
     c = -0.17228
     loc = 3.1125
     scale = 1.2256
+    #rnv_copulaized = hsig_storm_len_copula(rnv, storm_len) 
     hsig = int(round(loc + ((1-rnv)**-c - 1) * scale/c))   
     #hsig = st.genpareto.rvs(c=c, loc=loc, scale=scale, discrete=True)
     return hsig
 
 def get_a_hsig(rnv, hsig):
-    a = 0.22
-    b = 2.34
-    c = 7.13
-    loc = 3.03
-    scale = 1.09
-    rnv_copulaized = a_hsig__hsig_copula(rnv, hsig) 
+    '''Average Hsig is modeled by a generalized pareto distribution'''
+    c = -0.21576
+    loc = 3.0766
+    scale = 0.59362
+    rnv_copulaized = a_hsig_hsig_copula(rnv, hsig) 
     a_hsig = int(round(loc + ((1-rnv_copulaized)**-c - 1) * scale/c)) 
-    #a_hsig = st.genexpon.rvs(a=a, b=b, c=c, loc=loc, scale=scale, discrete=False)
+    #hsig = st.genpareto.rvs(c=c, loc=loc, scale=scale, discrete=True)
     return a_hsig
 
 def get_tps(rnv, hsig):
-    '''Modeled as a Frechet right distribution'''
-    c = 1.5975
-    loc = 6.5955
-    scale = 3.1261
-    rnv_copulaized = tps__hsig_copula(rnv, hsig)
-    tps = loc + scale*np.log(rnv)**(-1/c)
-    #tps = st.weibull_min.rvs(mu=mu, loc=loc, scale=scale, discrete=False)
+    '''Modeled as a Frechet distribution'''
+    c = 10.503
+    loc = -4.9823
+    scale = 13.506
+    #rnv_copulaized = tps__hsig_copula(rnv, hsig)
+    tps = loc - scale*-(abs(np.log(rnv))**(-1/c))
+    #tps2 = st.genextreme.rvs(c=-0.08, loc=8.58, scale=1.31, discrete=False)
+    #tps = [tps1, tps2]
     return tps
 
 def get_a_tps(rnv, tps):
-    mu = 0.22
-    loc = 5.90
-    scale = 0.61
-    
-    
-    #a_tps = st.recipinvgauss.rvs(mu=0.22, loc=5.90, scale=0.61, discrete=False)
-    #a_tps = tps-rnv*3
+    '''Modeled as a Frechet distribution'''
+    c = 12.409
+    loc = -5.2135
+    scale = 13.723
+    #rnv_copulaized = tps__hsig_copula(rnv, hsig)
+    a_tps = loc - scale*-(abs(np.log(rnv))**(-1/c))    
+    #a_tps2 = st.genextreme.rvs(c=-0.08, loc=8.55, scale=1.12, discrete=False)
+    #a_tps = [a_tps1, a_tps2]
     return a_tps
+    
+def get_tide(rnv, storm_len):
+    '''Maximum Hsig is modeled by a generalized pareto distribution'''
+    c = -0.17228
+    loc = 3.1125
+    scale = 1.2256
+    #rnv_copulaized = hsig_storm_len_copula(rnv, storm_len) 
+    tide = 1.0 / (1 + exp(-1.0 / b * (np.random.normal() - a)))
+    #hsig = st.genpareto.rvs(c=c, loc=loc, scale=scale, discrete=True)
+    return hsig
+    
+SWEL
+johnsonsb(a=-0.95, b=1.41, loc=-1.12, scale=1.90)<
+KstestResult(statistic=0.029574404259407161, pvalue=0.9901000531575973)<br>
+
+\gamma = -1.1319
+\rho = 1.5523
+\lambda = 2.098
+\epsilon = -1.2726
+
+# In[]
+i = 0
+storm = []
+while i < 100000:
+    strm = get_a_tps(np.random.random(),5)
+    storm.append(strm)
+    i += 1
+
+tps1 = [storm[i][0] for i in range(100000)]
+tps2 = [storm[i][1] for i in range(100000)]
+
+tp1 = pd.Series(data=tps1)
+tp2 = pd.Series(data=tps2)
     
 # In[]
 i = 0
 Time = [0]
 max_time = 100*8766
+
+ 
+johnsonsb = johnsonsb_gen(a=0.0, b=1.0, name='johnsonsb')
+
 # In[]
 %%timeit
 i = 0
