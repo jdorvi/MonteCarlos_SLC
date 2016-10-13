@@ -11,7 +11,7 @@ import numpy as np
 import scipy.stats as st
 import pandas as pd
 # In[]
-outpath = "C:/Users/jdorvinen/Documents/Jared/Projects/East Hampton/"
+outpath = "/home/rannikko/git/"
 outfile = "test1.csv"
 outputfile = os.path.join(outpath, outfile)
 # In[]
@@ -41,7 +41,7 @@ def get_hsig(rnv, storm_len):
     loc = 3.1125
     scale = 1.2256
     #rnv_copulaized = hsig_storm_len_copula(rnv, storm_len) 
-    hsig = int(round(loc + ((1-rnv)**-c - 1) * scale/c))   
+    hsig = loc + ((1-rnv)**-c - 1) * scale/c  
     #hsig = st.genpareto.rvs(c=c, loc=loc, scale=scale, discrete=True)
     return hsig
 
@@ -50,8 +50,8 @@ def get_a_hsig(rnv, hsig):
     c = -0.21576
     loc = 3.0766
     scale = 0.59362
-    rnv_copulaized = a_hsig_hsig_copula(rnv, hsig) 
-    a_hsig = int(round(loc + ((1-rnv_copulaized)**-c - 1) * scale/c)) 
+    #rnv_copulaized = a_hsig_hsig_copula(rnv, hsig) 
+    a_hsig = loc + ((1-rnv)**-c - 1) * scale/c 
     #hsig = st.genpareto.rvs(c=c, loc=loc, scale=scale, discrete=True)
     return a_hsig
 
@@ -77,30 +77,23 @@ def get_a_tps(rnv, tps):
     #a_tps = [a_tps1, a_tps2]
     return a_tps
     
-def get_tide(rnv, storm_len):
-    '''Maximum Hsig is modeled by a generalized pareto distribution'''
-    c = -0.17228
-    loc = 3.1125
-    scale = 1.2256
-    #rnv_copulaized = hsig_storm_len_copula(rnv, storm_len) 
-    tide = 1.0 / (1 + exp(-1.0 / b * (np.random.normal() - a)))
-    #hsig = st.genpareto.rvs(c=c, loc=loc, scale=scale, discrete=True)
-    return hsig
-    
-SWEL
-johnsonsb(a=-0.95, b=1.41, loc=-1.12, scale=1.90)<
-KstestResult(statistic=0.029574404259407161, pvalue=0.9901000531575973)<br>
-
-\gamma = -1.1319
-\rho = 1.5523
-\lambda = 2.098
-\epsilon = -1.2726
+def get_tide():
+    '''Maximum tide is modeled by as an independent random variable following
+    a JohnsonSB distribution'''
+    a = -1.1319   #-0.95
+    b = 1.5523    # 1.41
+    loc = -1.2726 #-1.12
+    scale = 2.098 # 1.90
+    tide = scale*1.0 / (1 + np.exp(-1.0 / b * (np.random.normal() - a)))+loc
+    #tide2 = st.johnsonsb.rvs(a=a, b=b, loc=loc, scale=scale, discrete=False)
+    #tide = [tide1, tide2]
+    return tide
 
 # In[]
 i = 0
 storm = []
 while i < 100000:
-    strm = get_a_tps(np.random.random(),5)
+    strm = get_tide()
     storm.append(strm)
     i += 1
 
@@ -113,32 +106,30 @@ tp2 = pd.Series(data=tps2)
 # In[]
 i = 0
 Time = [0]
-max_time = 100*8766
-
- 
-johnsonsb = johnsonsb_gen(a=0.0, b=1.0, name='johnsonsb')
+max_time = 1000*8766
 
 # In[]
 %%timeit
 i = 0
 Time = [0]
 with open(outputfile, 'w') as outfile:
+    header = " interim,  duratn,    tide,    hsig,  a_hsig,     tps,   a_tps\n"
+    outfile.write(header)
     while Time[i] < max_time:
-        #rnv = [np.random.random() for variable in range(6)]
-        interim = get_interim(rnv[0], Time[i])
+        rnv = [np.random.random() for variable in range(6)]
+        interim = get_interim(rnv[0])
         storm_len = get_storm_len(rnv[1])
         hsig = get_hsig(rnv[2], storm_len)
         a_hsig = get_a_hsig(rnv[3], hsig)
         tps = get_tps(rnv[4], hsig)
         a_tps = get_a_tps(rnv[5], tps)
-        
-        raw_line = "{:>8},{:>8},{:>8.2f},{:>8.2f},{:>8.2f},{:>8.2f}\n"
-        line = raw_line.format(interim, storm_len, hsig, a_hsig, tps, a_tps)
+        tide = get_tide()
+        raw_line = "{:>8},{:>8},{:>8.3f},{:>8.2f},{:>8.2f},{:>8.2f},{:>8.2f}\n"
+        line = raw_line.format(interim, storm_len, tide, hsig, a_hsig, tps, a_tps)
         outfile.write(line)
         
         Time.append(Time[i]+interim+storm_len)
         i += 1
-
 
 # In[]
 import scipy as sp
