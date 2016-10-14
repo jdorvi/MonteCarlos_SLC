@@ -42,7 +42,7 @@ def get_storm_len(rnv):
     #storm_len = [storm_len1, storm_len2]
     return storm_len
 
-def get_hsig(rnv, storm_len):
+def get_hsig(rnv):
     '''Maximum Hsig is modeled by a generalized Pareto distribution. In the 
     current configuration Hsig is measured in meters.'''
     c = -0.17228
@@ -53,7 +53,7 @@ def get_hsig(rnv, storm_len):
     #hsig = st.genpareto.rvs(c=c, loc=loc, scale=scale, discrete=True)
     return hsig
 
-def get_a_hsig(rnv, hsig):
+def get_a_hsig(rnv):
     '''Average Hsig is modeled by a generalized Pareto distribution'''
     c = -0.21576
     loc = 3.0766
@@ -63,7 +63,7 @@ def get_a_hsig(rnv, hsig):
     #hsig = st.genpareto.rvs(c=c, loc=loc, scale=scale, discrete=True)
     return a_hsig
 
-def get_tps(rnv, hsig):
+def get_tps(rnv):
     '''Modeled as a Frechet distribution'''
     c = 10.503
     loc = -4.9823
@@ -74,7 +74,7 @@ def get_tps(rnv, hsig):
     #tps = [tps1, tps2]
     return tps
 
-def get_a_tps(rnv, tps):
+def get_a_tps(rnv):
     '''Modeled as a Frechet distribution'''
     c = 12.409
     loc = -5.2135
@@ -85,7 +85,7 @@ def get_a_tps(rnv, tps):
     #a_tps = [a_tps1, a_tps2]
     return a_tps
     
-def get_tide():
+def get_tide(rnv):
     '''Maximum tide is modeled by as an independent random variable following
     a JohnsonSB distribution'''
     a = -1.1319   #-0.95
@@ -97,6 +97,41 @@ def get_tide():
     #tide = [tide1, tide2]
     return tide
 
+# <codecell>
+%%time
+import chaospy as cp
+
+n_samples = 1000000
+
+joint = cp.J(cp.Uniform(lo=0,up=1),
+             cp.Uniform(lo=0,up=1),
+             cp.Uniform(lo=0,up=1),
+             cp.Uniform(lo=0,up=1),
+             cp.Uniform(lo=0,up=1)
+            )
+clayton = cp.Clayton(joint, theta=2) #why 2?
+samples = clayton.sample(size=n_samples)
+independent = [cp.Uniform(lo=0,up=1).sample(size=n_samples),
+               cp.Uniform(lo=0,up=1).sample(size=n_samples)
+              ]
+rnv = {'length':samples[0],
+       'hsig':samples[1],
+       'a_hsig':samples[2],
+       'tps':samples[3],
+       'a_tps':samples[4],
+       'interim':independent[0], #needs to be reformulated
+       'tide':independent[1]
+      }
+
+storms = {'length':[get_storm_len(rnv['length'][i]) for i in range(n_samples)],
+          'hsig':[get_hsig(rnv['hsig'][i]) for i in range(n_samples)],
+          'a_hsig':[get_a_hsig(rnv['a_hsig'][i]) for i in range(n_samples)],                  
+          'tps':[get_tps(rnv['tps'][i]) for i in range(n_samples)],                  
+          'a_tps':[get_a_tps(rnv['a_tps'][i]) for i in range(n_samples)],
+          'interim':[get_interim(rnv['interim'][i]) for i in range(n_samples)],
+          'tide':[get_tide(rnv['tide'][i]) for i in range(n_samples)]
+         }
+                  
 # <codecell>
 i = 0
 storm = []
@@ -146,6 +181,18 @@ with open(outputfile, 'w') as outfile:
         i += 1
 
 # <codecell>
-import scipy as sp
-import scipy.stats as st
-st.foldcauchy.rvs()
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+fig = plt.figure(1,figsize=(10,10))
+ax = fig.add_subplot(111, projection='3d')
+cmpair = plt.cm.get_cmap('Paired')
+colors = [np.random.random() for i in range(0,n_samples)]
+for storm in storms:
+    ax.scatter(storms['hsig'][:],
+               storms['tps'][:],
+                storms['length'][:],
+                'o',
+                c=colors,
+                cmap=cmpair,
+                alpha=0.5)
+fig.show()
