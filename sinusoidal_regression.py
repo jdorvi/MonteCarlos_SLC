@@ -27,8 +27,8 @@ dataf = pd.DataFrame(data=data)
 trace = None
 x_data = dataf[0]
 x_data[12] = 13
-x_data = (x_data-1)/12
-y_data = dataf[1]
+x_data = (x_data-1)
+y_data = dataf[1]/12
 y_data[12] = y_data[0]
 # <codecell>
 def graph(formula, x_range, color='black', alpha=1):
@@ -47,7 +47,7 @@ with pm.Model() as model:
     
     start = pm.find_MAP()
     step = pm.NUTS(state=start)
-    trace = pm.sample(1000, step, start=start, progressbar=True) #very slow without theano
+    trace = pm.sample(2000, step, start=start, progressbar=True) #very slow without theano
 
 pm.traceplot(trace);
 

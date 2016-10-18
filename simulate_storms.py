@@ -133,18 +133,7 @@ storms = {'length':[get_storm_len(rnv['length'][i]) for i in range(n_samples)],
          }
                   
 # <codecell>
-i = 0
-storm = []
-while i < 100000:
-    strm = get_tide()
-    storm.append(strm)
-    i += 1
-
-tps1 = [storm[i][0] for i in range(100000)]
-tps2 = [storm[i][1] for i in range(100000)]
-
-tp1 = pd.Series(data=tps1)
-tp2 = pd.Series(data=tps2)
+ rnv = 1-exp(integ)
     
 # <codecell>
 i = 0
