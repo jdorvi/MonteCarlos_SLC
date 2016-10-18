@@ -13,20 +13,44 @@ import os
 import numpy as np
 import scipy.stats as st
 import pandas as pd
+import scipy.optimize as opt
 # <codecell>
 outpath = "/home/rannikko/git/"
 outfile = "test1.csv"
 outputfile = os.path.join(outpath, outfile)
 # <codecell>
-def get_interim(rnv):
-    '''Estimate time between storms based on a folded Cauchy distribution. The
-    given configuration gives a period of hours as an integer.'''
-    c = 0.63
-    loc = 25.94
-    scale = 137.16
-    interim = int(round(abs(scale * np.tan(np.pi * (rnv-1/2)) + loc)))
-    #interim2 = st.foldcauchy.rvs(c=c, loc=loc, scale=scale, discrete=True)
-    #interim = [interim1, interim2]
+def interim_func(Gi, te, rnv):
+    # Model data fit: alpha=1.498, beta=-0.348, gamma=1.275
+    # Callaghan et al. used: alpha=21.46, beta=1.08, gamma=1.07
+    a = 17.976 # 12*1.498  # {0}
+    b = -4.176 # 12*-0.348 # {1}
+    c = 15.3   # 12*1.275  # {2}
+    rnv = rnv
+    te = te
+    w = 2*np.pi
+    f = '1 - rnv - \
+         np.exp(-({0}*w*Gi + \
+                  {1}*(np.cos(w*te) - np.cos(w*(te+Gi))) - \
+                  {2}*(np.sin(w*te) - np.sin(w*(te+Gi))))/w)'
+
+    #print(f.format(a,b,c,rnv,te))
+
+    s = eval(f.format(a,b,c))
+    return s
+
+
+def get_interim(rnv,te):
+    '''Estimate time between storms based on a non-homogeneous Poisson 
+    distribution. The given configuration gives a period of hours as an 
+    integer.'''
+    interim_yrs = opt.zeros.brentq(interim_func, 0, 1, 
+                                   args=(te,rnv),
+                                   xtol=2e-12,
+                                   rtol=8.8817841970012523e-16,
+                                   maxiter=100,
+                                   full_output=False,
+                                   disp=True)
+    interim = int(round(interim_yrs*365.25*24))
     return interim
 
 def get_storm_len(rnv):
@@ -100,8 +124,8 @@ def get_tide(rnv):
 # <codecell>
 %%time
 import chaospy as cp
-
-n_samples = 1000000
+import pandas as pd
+n_samples = 1000
 
 joint = cp.J(cp.Uniform(lo=0,up=1),
              cp.Uniform(lo=0,up=1),
@@ -123,15 +147,37 @@ rnv = {'length':samples[0],
        'tide':independent[1]
       }
 
-storms = {'length':[get_storm_len(rnv['length'][i]) for i in range(n_samples)],
-          'hsig':[get_hsig(rnv['hsig'][i]) for i in range(n_samples)],
-          'a_hsig':[get_a_hsig(rnv['a_hsig'][i]) for i in range(n_samples)],                  
-          'tps':[get_tps(rnv['tps'][i]) for i in range(n_samples)],                  
-          'a_tps':[get_a_tps(rnv['a_tps'][i]) for i in range(n_samples)],
-          'interim':[get_interim(rnv['interim'][i]) for i in range(n_samples)],
-          'tide':[get_tide(rnv['tide'][i]) for i in range(n_samples)]
-         }
-                  
+storms = pd.DataFrame()
+storms = storms.append({'length':0,
+                        'hsig':0,
+                        'a_hsig':0,
+                        'tps':0,
+                        'a_tps':0,
+                        'interim':0,
+                        'tide':0,
+                        'time_end':0},
+                        ignore_index=True)
+
+for i in range(n_samples):
+    storm = {'length':get_storm_len(rnv['length'][i]),
+             'hsig':get_hsig(rnv['hsig'][i]),
+             'a_hsig':get_a_hsig(rnv['a_hsig'][i]),                  
+             'tps':get_tps(rnv['tps'][i]),                  
+             'a_tps':get_a_tps(rnv['a_tps'][i]),
+             'interim':get_interim(rnv['interim'][i],storms['time_end'][i]),
+             'tide':get_tide(rnv['tide'][i])
+            }
+    storms = storms.append(storm, ignore_index=True)
+    storms['time_end'][i+1] = storms['time_end'][i] + \
+                              storms['interim'][i] + \
+                              storms['length'][i]     
+storms = storms.drop(storms.index[[0]])
+
+# <codecell>
+df = pd.DataFrame([storms.hsig,storms.tps,storms.tide,storms.length,storms.interim])
+df = df.T
+pd.tools.plotting.scatter_matrix(df,alpha=0.3)
+         
 # <codecell>
  rnv = 1-exp(integ)
     

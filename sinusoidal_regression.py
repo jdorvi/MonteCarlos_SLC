@@ -27,8 +27,8 @@ dataf = pd.DataFrame(data=data)
 trace = None
 x_data = dataf[0]
 x_data[12] = 13
-x_data = (x_data-1)
-y_data = dataf[1]/12
+x_data = (x_data-1)/12
+y_data = dataf[1]
 y_data[12] = y_data[0]
 # <codecell>
 def graph(formula, x_range, color='black', alpha=1):
@@ -52,16 +52,18 @@ with pm.Model() as model:
 pm.traceplot(trace);
 
 # <codecell>
-plt.scatter(x_data,y_data)
+plt.scatter(x_data,12*y_data)
 for i in np.arange(0,1000):
-    point = trace.point(i)
-    formula = '{0} + {1}*np.sin(2*np.pi*x_data) + {2}*np.cos(2*np.pi*x_data)'
-    graph(formula.format(point['alpha'],
-                         point['beta'],
-                         point['gamma']), 
-          np.arange(0,13/12,1/12),
-          color='black',
-          alpha=0.01)
+    #point = trace.point(i)
+    formula = '{0} + {1}*np.sin(2*np.pi*{3}) + {2}*np.cos(2*np.pi*{3})'
+    #graph(formula.format(point['alpha'],
+    #                     point['beta'],
+    #                     point['gamma']), 
+    #      np.arange(0,13/12,1/12),
+    #      color='black',
+    #      alpha=0.01)
 # Model data fit: alpha=1.498, beta=-0.348, gamma=1.275
-plt.plot(x_data, eval(formula.format(1.498, -0.348, 1.275)), color='red')
+x10_data = np.arange(0,1.01,0.01)
+y_calc = [eval(formula.format(12*1.498, 12*-0.348, 12*1.275, i)) for i in x10_data]
+plt.plot(x10_data, y_calc, color='red')
 #1.273,1.106,0.81,7.43)), color='red')
