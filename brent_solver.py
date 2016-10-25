@@ -106,7 +106,7 @@ for rnv in rnvs:
                                 full_output=False,
                                 disp=True))
 """
-# my implementation of the brent solver is ~ 7 times slower than the scipy
+# this implementation of the brent solver is ~ 7 times slower than the scipy
 # built-in function. Will keep this script for reference but use scipy function
 # in final script.
 # <codecell>
