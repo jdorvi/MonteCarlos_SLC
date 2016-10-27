@@ -25,7 +25,7 @@ def kriebel_dean(w_cm, B, D, W, m, S, T_d, H_b, gamma=0.78):
         T_d  = Storm duration (hours)
         H_b  = Breaking wave height (meters)
         OPTIONAL
-        gamma = Breaker indes, usually take to be 0.78-1.0 
+        gamma = Breaker index, usually taken to be 0.78-1.0 
     
     Returns:
         R_max = Maximum shoreline erosion (meters)'''
