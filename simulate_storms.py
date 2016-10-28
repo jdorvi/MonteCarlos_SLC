@@ -11,11 +11,11 @@ date: 10/13/2016
 # <codecell>
 import os
 import numpy as np
-import scipy.stats as st
+#import scipy.stats as st
 import pandas as pd
 import scipy.optimize as opt
 # <codecell>
-outpath = "/home/rannikko/git/"
+outpath = os.getcwd() #"/home/rannikko/git/"
 outfile = "test1.csv"
 outputfile = os.path.join(outpath, outfile)
 # <codecell>
@@ -122,10 +122,10 @@ def get_tide(rnv):
     return tide
 
 # <codecell>
-%%time
+#%%time
 import chaospy as cp
-import pandas as pd
-n_samples = 1000
+#import pandas as pd
+n_samples = 5000
 
 joint = cp.J(cp.Uniform(lo=0,up=1),
              cp.Uniform(lo=0,up=1),
@@ -174,48 +174,43 @@ for i in range(n_samples):
 storms = storms.drop(storms.index[[0]])
 
 # <codecell>
-df = pd.DataFrame([storms.hsig,storms.tps,storms.tide,storms.length,storms.interim])
-df = df.T
-pd.tools.plotting.scatter_matrix(df,alpha=0.3)
+#df = pd.DataFrame([storms.hsig,storms.tps,storms.tide,storms.length,storms.interim])
+#df = df.T
+#pd.tools.plotting.scatter_matrix(df,alpha=0.3)
          
 # <codecell>
- rnv = 1-exp(integ)
-    
+#rnv = 1-exp(integ)
+#storms
+   
 # <codecell>
-i = 0
-Time = [0]
-max_time = 1000*8766
+#i = 0
+#Time = [0]
+#max_time = 1000*8766
 
 # <codecell>
-%%timeit
+#%%timeit
 i = 0
 Time = [0]
 with open(outputfile, 'w') as outfile:
-    header = " interim,  duratn,    tide,    hsig,  a_hsig,     tps,   a_tps\n"
+    header = " interim,  length,    tide,    hsig,  a_hsig,     tps,   a_tps\n"
     outfile.write(header)
-    while Time[i] < max_time:
-        rnv = [np.random.random() for variable in range(6)]
-        interim = get_interim(rnv[0])
-        storm_len = get_storm_len(rnv[1])
-        hsig = get_hsig(rnv[2], storm_len)
-        a_hsig = get_a_hsig(rnv[3], hsig)
-        tps = get_tps(rnv[4], hsig)
-        a_tps = get_a_tps(rnv[5], tps)
-        tide = get_tide()
+    for storm in storms.T:
         raw_line = "{:>8},{:>8},{:>8.3f},{:>8.2f},{:>8.2f},{:>8.2f},{:>8.2f}\n"
-        line = raw_line.format(interim,
-                               storm_len,
-                               tide,
-                               hsig,
-                               a_hsig,
-                               tps,
-                               a_tps)
+        line = raw_line.format(storms['interim'][storm],
+                               storms['length'][storm],
+                               storms['tide'][storm],
+                               storms['hsig'][storm],
+                               storms['a_hsig'][storm],
+                               storms['tps'][storm],
+                               storms['a_tps'][storm])
         outfile.write(line)
         
-        Time.append(Time[i]+interim+storm_len)
+        Time.append(Time[i]+storms['interim'][storm]+storms['length'][storm])
         i += 1
-
+outfile.close()
+pd.to_pickle(storms, 'temp_storms.npy')
 # <codecell>
+'''
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 fig = plt.figure(1,figsize=(10,10))
@@ -231,3 +226,4 @@ for storm in storms:
                 cmap=cmpair,
                 alpha=0.5)
 fig.show()
+'''

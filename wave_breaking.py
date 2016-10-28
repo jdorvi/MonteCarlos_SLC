@@ -116,10 +116,14 @@ def input2deep(H_i, T_i, theta_i, h_i):
     H_o = H_i*K_s*K_r # Eq. 4.117
     # Wave period is assumed constant
     T_o = T_i
+    # Check for oversteep waves
+    if H_o/L_o > (1/7): # Equation II-1-71 from the Coastal Engineering Manual
+        H_o = H_o*(95/700)
+    
     # Convert theta_o from radians to degrees
     theta_o = theta_o * 360/(2*pi)
     
-    return [H_o, T_o, theta_o, L_o, C_o]
+    return (H_o, T_o, theta_o, L_o, C_o)
 
 def deep2shallow(H_o, T_o, theta_o, L_o, C_o, h_s=20):
     '''Calculates wave shoaling and refraction experienced by offshore, deep-
@@ -127,19 +131,20 @@ def deep2shallow(H_o, T_o, theta_o, L_o, C_o, h_s=20):
     nearshore wave parameters at a given depth.
     
     Inputs:
-        REQUIRED
-        H_o = Initial wave height (m)
-        T_o = Initial wave period (sec)
-        theta_o = Initial wave angle (deg)
-        L_o = Offshore wave length (m)
-        C_o = Offshore wave celerity (m/s)
-        h_s = Nearshore water depth (m) at which new wave parameters are 
-              calculated
+        REQUIRED \n
+        H_o = Initial wave height (m) \n
+        T_o = Initial wave period (sec) \n
+        theta_o = Initial wave angle (deg) \n
+        L_o = Offshore wave length (m) \n
+        C_o = Offshore wave celerity (m/s) \n
+        h_s = Nearshore water depth (m) where new waves are calculated \n
     
     Outputs:
-        H_s = Nearshore wave height (m)
-        T_s = Nearshore wave period (sec)
-        theta_s = Neashore wave angle (deg)
+        H_s = Nearshore wave height (m) \n
+        T_s = Nearshore wave period (sec) \n
+        theta_s = Neashore wave angle (deg) \n
+        L_s = Nearshore wave length (m) \n
+        C_s = Nearshore wave celerity (m/s) \n
     '''
 
     # Required Constants
@@ -198,38 +203,71 @@ def deep2shallow(H_o, T_o, theta_o, L_o, C_o, h_s=20):
     # Convert theta_o from radians to degrees
     theta_s = theta_s * 360/(2*pi) 
     
-    return [H_s, T_s, theta_s]
+    return (H_s, T_s, theta_s, L_s, C_s)
 
-def shallow2breaking(H, T, theta, x_init, m, A, gamma=0.78):
+def shallow2breaking(H_s, T_s, theta_s, L_s, C_s, h_s, m, A,
+                     gamma=0.78, tolerance=0.5, limit=100):
     '''Returns breaking wave height and depth based on an initial nearshore
     wave condition defined by a wave height, period, and angle originating at a
     given distance from the shoreline. Based on linear wave theory and the 
     assumption of shore-parallel depth contours.
     
     Inputs:
-        H = Nearshore wave height (m)
-        T = Nearshore wave period (T)
-        theta = Nearshore wave angle from shore perpendicular (deg) 
-                -80 < theta < 80
-        x_init = Distance from shoreline where wave originate (m)
-        m   = Linear beach-face slope
-        A   = 2.25*((w**2)/g)**(1/3), from Eq. 15 of Kriebel & Dean (1993).
-              A parameter governing profile steepness, valid for sand where 
-              0.1mm < d_50 < 0.4mm
-        gamma = Breaker index, usually taken to be 0.78-1.0.
+        H_s = Nearshore wave height (m) \n
+        T_s = Nearshore wave period (T) \n
+        theta_s = Nearshore wave angle from shore perpendicular (deg) \n
+        L_s = Nearshore wave length (m) \n
+        C_s = Nearshore wave celerity (m/s) \n          
+        h_s = Nearshore depth where waves originate (m) \n
+        m   = Linear beach-face slope \n
+        A   = 2.25*((w**2)/g)**(1/3), from Eq. 15 of Kriebel & Dean (1993). \n
+              A parameter governing profile steepness, valid for sand where \n
+              0.1mm < d_50 < 0.4mm \n
+        gamma = Breaker index, usually taken to be 0.78-1.0. \n
+        tolerance = resolution of distance x from shore required for breaking \n
+        limit = maximum iterations allowed \n
              
     Outputs:
-        H_b = Breaking wave height (m)
-        h_b = Breaking wave water depth (m)
+        H_b = Breaking wave height (m) \n
+        h_b = Breaking wave water depth (m) \n
         x_b = Breaker distance offshore (m)
     '''
-    m = m
-    A = A 
-    gamma = gamma
+    x_s = cross_shore_distance(h_s, m, A)
+    h_1 = 0.75*h_s
+    x_1 = cross_shore_distance(h_1, m, A)
     
+    (H_1, T_1, theta_1, L_1, C_1) = deep2shallow(H_s, T_s, theta_s, L_s, C_s, h_s=h_1)
+    
+    def check_breaking(H_1, h_1, x_1, h_s, x_s, gamma=0.78, tolerance=1):  
+        if H_1/h_1 > gamma:
+            if abs(x_s-x_1) < tolerance:
+                h_1 = (h_s+h_1)/2
+            else:
+                h_1 = 1.175*h_1
+        else:
+            h_s = h_1
+            h_1 = 0.75*h_s
+        return (h_s, h_1)
+    
+    iterations = 0
+    while iterations<limit:
+        (h_s, h_1) = check_breaking(H_1, h_1, x_1, h_s, x_s)
+        x_s = cross_shore_distance(h_s, m, A)
+        x_1 = cross_shore_distance(h_1, m, A)
+        if (x_s-x_1)<tolerance:
+            (H_b, T_b, theta_b, L_b, C_b) = deep2shallow(H_s, T_s, theta_s, L_s, C_s, h_s=h_1)
+            h_b = h_1
+            x_b = (x_s+x_1)/2
+            iterations += limit
+        (H_s, T_s, theta_s, L_s, C_s) = deep2shallow(H_s, T_s, theta_s, L_s, C_s, h_s=h_s)
+        (H_1, T_1, theta_1, L_1, C_1) = deep2shallow(H_s, T_s, theta_s, L_s, C_s, h_s=h_1)
+        iterations += 1
+    return (H_b, h_b, x_b) #, T_b, theta_b, L_b, C_b)
+    
+'''
     h_T = (4/9)*(A**3/m**2) # Depth at which the linear slope is tangent to the concave profile
     x_0 = h_T/(3*m)
-
+'''
 # Wave set-up calculated from breaking wave height and gamma
 def wave_setup(H_b, gamma=0.78):
     '''Returns wave set-up corresponding to a given breaking wave height and 
@@ -245,3 +283,6 @@ def wave_setup(H_b, gamma=0.78):
     '''
     nu_max = (40-3*gamma**2)*(gamma*H_b)/128
     return nu_max
+
+
+    

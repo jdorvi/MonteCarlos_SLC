@@ -15,20 +15,22 @@ def kriebel_dean(w_cm, B, D, W, m, S, T_d, H_b, gamma=0.78):
     119(2): 204-226
 
     Inputs:
-        REQUIRED
-        w_cm = sediment fall velocity (cm/s)
-        B    = berm height (meters)
-        D    = Dune height (meters)
-        W    = width of the back-shore (meters)
-        m    = Linear beach face slope (m/m)
-        S    = Water-level rise ('storm-surge') (meters)
-        T_d  = Storm duration (hours)
-        H_b  = Breaking wave height (meters)
-        OPTIONAL
-        gamma = Breaker index, usually taken to be 0.78-1.0 
+        REQUIRED \n
+        w_cm = sediment fall velocity (cm/s) \n
+        B    = berm height (meters) \n
+        D    = Dune height (meters) \n
+        W    = width of the back-shore (meters) \n
+        m    = Linear beach face slope (m/m) \n
+        S    = Water-level rise ('storm-surge') (meters) \n
+        T_d  = Storm duration (hours) \n
+        H_b  = Breaking wave height (meters) \n
+        OPTIONAL \n
+        gamma = Breaker index, usually taken to be 0.78-1.0 \n 
     
     Returns:
-        R_max = Maximum shoreline erosion (meters)'''
+        V_max = Maximum shoreline erosion volume (m**3) \n
+        R_max = Maximum shoreline erosion distance (m)
+        '''
         
     # Constants
     g = 9.8066 # gravitational acceleration (m/s/s)
@@ -80,7 +82,7 @@ def kriebel_dean(w_cm, B, D, W, m, S, T_d, H_b, gamma=0.78):
     R_inf = (S*(x_b-(h_b/m)) - (W*(B+h_b-(S/2)))) / (B+D+h_b-(S/2)) # Eq. 26
     
     # Volume eroded
-    # V_inf = R_inf*D + (R_inf+W)*(B-S) # Eq. 27 --> used in K&D examples
+    V_inf = R_inf*D + (R_inf+W)*(B-S) # Eq. 27 --> used in K&D examples
     # Volume eroded above original sea level #Eq. 28
     # V_minf = R_inf*D +(R_inf+W)*B+(S**2)/(2*m)-(2/5)*(S**(5/2))/(A**(3/2)) 
     
@@ -119,7 +121,7 @@ def kriebel_dean(w_cm, B, D, W, m, S, T_d, H_b, gamma=0.78):
     # Finally calculate maximum shoreline recession and volumetric erosion for
     # the given storm parameters.
     R_max = R_inf*0.5*(1-np.cos(2*sigma*t_max)) # Eq. 13
-    #V_max = V_inf*(R_max/R_inf)
+    V_max = V_inf*(R_max/R_inf)
     
     # Turn this block on if need to debug
     '''
@@ -136,4 +138,18 @@ def kriebel_dean(w_cm, B, D, W, m, S, T_d, H_b, gamma=0.78):
     print("sigma:       {:.3f}".format(sigma))
     '''
     
-    return R_max
+    return (V_max, R_max)
+
+def recovery(V_max, interim, T_a=1):
+    '''Calculate eroded sand-volume post recovery during storm interim. 
+    Inputs:
+        V_max = Initially erroded volume (m**3)
+        interim = Period of calm between storms (h)
+        T_a = Characteristic accretive timescale (h)
+    Outputs:
+        V_recoverd = Eroded volume remaining after recovery (m**3)
+    '''
+    from numpy import exp
+    V_recovered = V_max*exp(-1*interim/T_a) # Eq. 28 Callaghan et al. 2008
+    return V_recovered
+    
