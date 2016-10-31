@@ -8,27 +8,31 @@ from wave_breaking import input2deep, deep2shallow, shallow2breaking, wave_setup
 from kriebel_dean import kriebel_dean, recovery
 
 # Define input parameters
-w_cm = 10 # Sediment fall velocity (cm/s)
-B = 2 #berm height (meters)
-D = 1 #Dune height (meters)
-W = 10 #width of the back-shore (meters)
-m = 0.05 #Linear beach face slope (m/m)
-A = 0.175 # 2.25*((w**2)/g)**(1/3), from Eq. 15 of Kriebel & Dean (1993).
+w_cm = 4.86 # Sediment fall velocity (cm/s)
+B = 10 # berm height (meters)
+D = 0 # Dune height (meters)
+W = 0 # width of the back-shore (meters)
+m = 0.07 # Linear beach face slope (m/m)
+A = 0.14 # 2.25*((w**2)/g)**(1/3), from Eq. 15 of Kriebel & Dean (1993).
         # A parameter governing profile steepness, valid for sand where
         # 0.1mm < d_50 < 0.4mm
-SLR_rate = 0.0035 # sea level rise rate (m/year)
+SLR_rate = 0 # sea level rise rate (m/year)
 def main():
     ''' Bringing it all together'''
     import pandas as pd
     
     V_eroded = 0 # Initially eroded volume
+    R_eroded = 0
     i = 1
-    storms = pd.read_pickle('temp_storms.npy')
+    storms = pd.read_pickle('temp_storms2.npy')
     
     volume = [V_eroded]
+    distance = [R_eroded]
     time = [0]
+
     for storm in storms.T:
         V_max = V_eroded
+        R_max = R_eroded
         # Storm parameters
         H_i = storms['hsig'][storm]
         T_i = storms['hsig'][storm]
@@ -59,23 +63,28 @@ def main():
             surge += SLR_rate*time[i-2]/(24*365.25)
         
         # Calculate recovery
-        V_recovered = recovery(V_max, interim)
-        
+        V_recovered = recovery(V_max, interim, T_a=400)
+        R_recovered = recovery(R_max, interim, T_a=400)
         # Calculate erosion
-        (V_eroded, R_eroded)=kriebel_dean(w_cm, B, D, W, m, surge, length, H_b)
+        (V_eroded, R_eroded, V_inf, R_inf)=kriebel_dean(w_cm, B, D, W, m, surge, length, H_b)
+        #print(V_eroded)
         if V_eroded < V_recovered:
             V_eroded = V_recovered
+        if R_eroded < R_recovered:
+            R_eroded = R_recovered
             
         # add to lists
         volume.append(V_recovered)
         volume.append(V_eroded)
+        distance.append(R_recovered)
+        distance.append(R_eroded)
         time.append(time[i-1]+interim)
         time.append(time[i]+length)
         
         # Increment time index
         i += 2
         
-    return (time, volume)
+    return (time, volume, distance)
     
 if __name__ == '__main__':
-    (time, volume) = main()
+    (time, volume, distance) = main()

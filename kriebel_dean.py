@@ -65,7 +65,7 @@ def kriebel_dean(w_cm, B, D, W, m, S, T_d, H_b, gamma=0.78):
     h_T = (4/9)*(A**3/m**2)  # Eq. 16b_1
     x_0 = h_T/(3*m)          # Eq. 16b_2
     x_b = x_0+(h_b/A)**(3/2) # Eq. 23
-
+    
     # Calculate erosion potential
     # Maximum erosion potential, 'R_inf', and maximum potential volume eroded,
     # 'V_inf', based on an equilibrium profile with a linear beach slope.
@@ -80,7 +80,7 @@ def kriebel_dean(w_cm, B, D, W, m, S, T_d, H_b, gamma=0.78):
     
     # Dune with a wide back-shore. 
     R_inf = (S*(x_b-(h_b/m)) - (W*(B+h_b-(S/2)))) / (B+D+h_b-(S/2)) # Eq. 26
-    
+
     # Volume eroded
     V_inf = R_inf*D + (R_inf+W)*(B-S) # Eq. 27 --> used in K&D examples
     # Volume eroded above original sea level #Eq. 28
@@ -94,7 +94,7 @@ def kriebel_dean(w_cm, B, D, W, m, S, T_d, H_b, gamma=0.78):
     T_s = C_1*T_sec/3600 # convert seconds to hours
     
     # Combine erosion potential and timescale
-    #Beach response to idealized storm surge
+    # Beach response to idealized storm surge
     alpha = 1/T_s
     sigma = np.pi/T_d
     beta = 2*sigma/alpha # 2*np.pi*(T_s/T_d)
@@ -138,9 +138,9 @@ def kriebel_dean(w_cm, B, D, W, m, S, T_d, H_b, gamma=0.78):
     print("sigma:       {:.3f}".format(sigma))
     '''
     
-    return (V_max, R_max)
+    return (V_max, R_max, V_inf, R_inf)
 
-def recovery(V_max, interim, T_a=1):
+def recovery(V_max, interim, T_a=400):
     '''Calculate eroded sand-volume post recovery during storm interim. 
     Inputs:
         V_max = Initially erroded volume (m**3)

@@ -49,7 +49,7 @@ with pm.Model() as model:
     step = pm.NUTS(state=start)
     trace = pm.sample(2000, step, start=start, progressbar=True) #very slow without theano
 
-pm.traceplot(trace);
+pm.traceplot(trace)
 
 # <codecell>
 plt.scatter(x_data,12*y_data)

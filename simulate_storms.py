@@ -16,7 +16,7 @@ import pandas as pd
 import scipy.optimize as opt
 # <codecell>
 outpath = os.getcwd() #"/home/rannikko/git/"
-outfile = "test1.csv"
+outfile = "test3.csv"
 outputfile = os.path.join(outpath, outfile)
 # <codecell>
 def interim_func(Gi, te, rnv):
@@ -121,11 +121,21 @@ def get_tide(rnv):
     #tide = [tide1, tide2]
     return tide
 
+def get_direction(rnv1, rnv2):
+    '''Wave direction is sampled from an empirical distribution bounded by 80 
+    degrees from shore normal. 
+    A. Haghighat 'Monte Carlo Methods for Particle Transport' CRC Press 2015'''
+    wave_angles = np.load('wave_angles.npy')
+    len_wa = 72-1 # Length of wave angle observations minus 1
+    i = int(len_wa*rnv1)
+    direction = wave_angles[i]+rnv2*(wave_angles[i+1]-wave_angles[i])
+    return direction
+    
 # <codecell>
 #%%time
 import chaospy as cp
 #import pandas as pd
-n_samples = 5000
+n_samples = 50000
 
 joint = cp.J(cp.Uniform(lo=0,up=1),
              cp.Uniform(lo=0,up=1),
@@ -136,6 +146,8 @@ joint = cp.J(cp.Uniform(lo=0,up=1),
 clayton = cp.Clayton(joint, theta=2) #why 2?
 samples = clayton.sample(size=n_samples)
 independent = [cp.Uniform(lo=0,up=1).sample(size=n_samples),
+               cp.Uniform(lo=0,up=1).sample(size=n_samples),
+               cp.Uniform(lo=0,up=1).sample(size=n_samples),
                cp.Uniform(lo=0,up=1).sample(size=n_samples)
               ]
 rnv = {'length':samples[0],
@@ -144,7 +156,9 @@ rnv = {'length':samples[0],
        'tps':samples[3],
        'a_tps':samples[4],
        'interim':independent[0], #needs to be reformulated
-       'tide':independent[1]
+       'tide':independent[1],
+       'direction1':independent[2],
+       'direction2':independent[3]
       }
 
 storms = pd.DataFrame()
@@ -155,7 +169,8 @@ storms = storms.append({'length':0,
                         'a_tps':0,
                         'interim':0,
                         'tide':0,
-                        'time_end':0},
+                        'time_end':0,
+                        'direction':0},
                         ignore_index=True)
 
 for i in range(n_samples):
@@ -165,7 +180,9 @@ for i in range(n_samples):
              'tps':get_tps(rnv['tps'][i]),                  
              'a_tps':get_a_tps(rnv['a_tps'][i]),
              'interim':get_interim(rnv['interim'][i],storms['time_end'][i]),
-             'tide':get_tide(rnv['tide'][i])
+             'tide':get_tide(rnv['tide'][i]),
+             'direction':get_direction(rnv['direction1'][i],
+                                       rnv['direction2'][i])
             }
     storms = storms.append(storm, ignore_index=True)
     storms['time_end'][i+1] = storms['time_end'][i] + \
@@ -192,23 +209,26 @@ storms = storms.drop(storms.index[[0]])
 i = 0
 Time = [0]
 with open(outputfile, 'w') as outfile:
-    header = " interim,  length,    tide,    hsig,  a_hsig,     tps,   a_tps\n"
+    header = " interim,  length,    tide,    hsig,\
+                a_hsig,     tps,   a_tps,   angle\n"
     outfile.write(header)
     for storm in storms.T:
-        raw_line = "{:>8},{:>8},{:>8.3f},{:>8.2f},{:>8.2f},{:>8.2f},{:>8.2f}\n"
+        raw_line = "{:>8},{:>8},{:>8.3f},{:>8.2f},\
+                    {:>8.2f},{:>8.2f},{:>8.2f},{:>8.1f}\n"
         line = raw_line.format(storms['interim'][storm],
                                storms['length'][storm],
                                storms['tide'][storm],
                                storms['hsig'][storm],
                                storms['a_hsig'][storm],
                                storms['tps'][storm],
-                               storms['a_tps'][storm])
+                               storms['a_tps'][storm],
+                               storms['direction'][storm])
         outfile.write(line)
         
         Time.append(Time[i]+storms['interim'][storm]+storms['length'][storm])
         i += 1
 outfile.close()
-pd.to_pickle(storms, 'temp_storms.npy')
+pd.to_pickle(storms, 'temp_storms3.npy')
 # <codecell>
 '''
 import matplotlib.pyplot as plt
