@@ -16,7 +16,7 @@ import pandas as pd
 import scipy.optimize as opt
 # <codecell>
 outpath = os.getcwd() #"/home/rannikko/git/"
-outfile = "test3.csv"
+outfile = "test4.csv"
 outputfile = os.path.join(outpath, outfile)
 # <codecell>
 def interim_func(Gi, te, rnv):
@@ -43,14 +43,17 @@ def get_interim(rnv,te):
     '''Estimate time between storms based on a non-homogeneous Poisson 
     distribution. The given configuration gives a period of hours as an 
     integer.'''
-    interim_yrs = opt.zeros.brentq(interim_func, 0, 1, 
-                                   args=(te,rnv),
-                                   xtol=2e-12,
-                                   rtol=8.8817841970012523e-16,
-                                   maxiter=100,
-                                   full_output=False,
-                                   disp=True)
-    interim = int(round(interim_yrs*365.25*24))
+    try:
+        interim_yrs = opt.zeros.brentq(interim_func, 0, 1, 
+                                       args=(te,rnv),
+                                       xtol=2e-12,
+                                       rtol=8.8817841970012523e-16,
+                                       maxiter=100,
+                                       full_output=False,
+                                       disp=True)
+        interim = int(round(interim_yrs*365.25*24))
+    except ValueError:
+        interim = np.nan
     return interim
 
 def get_storm_len(rnv):
@@ -135,7 +138,7 @@ def get_direction(rnv1, rnv2):
 #%%time
 import chaospy as cp
 #import pandas as pd
-n_samples = 50000
+n_samples = 50000*30
 
 joint = cp.J(cp.Uniform(lo=0,up=1),
              cp.Uniform(lo=0,up=1),
@@ -228,7 +231,7 @@ with open(outputfile, 'w') as outfile:
         Time.append(Time[i]+storms['interim'][storm]+storms['length'][storm])
         i += 1
 outfile.close()
-pd.to_pickle(storms, 'temp_storms3.npy')
+pd.to_pickle(storms, 'temp_storms4.npy')
 # <codecell>
 '''
 import matplotlib.pyplot as plt

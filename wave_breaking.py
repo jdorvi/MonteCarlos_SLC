@@ -57,7 +57,7 @@ def input2deep(H_i, T_i, theta_i, h_i):
         C_o = Offshoer wave celerity (m/s)
     '''
     # Required Constants
-    from numpy import pi, tanh, arcsin, sin, cos
+    from numpy import pi, tanh, arcsin, sin, cos, isnan
     g = 9.8066 #(m/s/s) - Gravitational acceleration
     
     # Convert input angle to radians
@@ -122,6 +122,10 @@ def input2deep(H_i, T_i, theta_i, h_i):
     
     # Convert theta_o from radians to degrees
     theta_o = theta_o * 360/(2*pi)
+    if isnan(theta_o):
+        theta_o = 0
+        H_o = 0
+        T_o = 10
     
     return (H_o, T_o, theta_o, L_o, C_o)
 
