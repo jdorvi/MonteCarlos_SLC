@@ -18,6 +18,7 @@ A = 0.328 # 2.25*((w**2)/g)**(1/3), from Eq. 15 of Kriebel & Dean (1993).
         # 0.1mm < d_50 < 0.4mm
 SLR_rate = 0 # sea level rise rate (m/year)
 MAX_INTER = 15 # one half the maximum time between points during recovery (hrs)
+T_a = 800 # Recovery characteristic time (hrs)
 
 def main():
     ''' Bringing it all together'''
@@ -75,24 +76,24 @@ def main():
         
         # Calculate recovery before storm for each interval
         for j in range(intervals):
-            V_recovered = recovery(V_max, (1+j)*MAX_INTER, T_a=800)
-            R_recovered = recovery(R_max, (1+j)*MAX_INTER, T_a=800)
+            V_recovered = recovery(V_max, (1+j)*MAX_INTER, T_a=T_a)
+            R_recovered = recovery(R_max, (1+j)*MAX_INTER, T_a=T_a)
             volume.append(V_recovered)
             distance.append(R_recovered)        
             time.append(time[i-1]+MAX_INTER)
             i += 1
         
         # Calculate final recovery before storm
-        V_recovered = recovery(V_max, interim, T_a=400)
-        R_recovered = recovery(R_max, interim, T_a=400)
+        V_recovered = recovery(V_max, interim, T_a=T_a)
+        R_recovered = recovery(R_max, interim, T_a=T_a)
         volume.append(V_recovered)
         distance.append(R_recovered)        
         time.append(time[i-1]+remainder)
         i += 1
         
         # Calculate hypothetical recovery during storm
-        V_recovered = recovery(V_recovered, length, T_a=400)
-        R_recovered = recovery(R_recovered, length, T_a=400)
+        V_recovered = recovery(V_recovered, length, T_a=T_a)
+        R_recovered = recovery(R_recovered, length, T_a=T_a)
         
         # Add SLR
         if i > 2:
