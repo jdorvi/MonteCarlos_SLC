@@ -7,18 +7,21 @@ author: j. dorvinen
 email: jdorvi_at_gmail_dot_com
 date: 10/13/2016
 """
-
-# <codecell>
+# Import required modules
 import os
 import numpy as np
 #import scipy.stats as st
 import pandas as pd
 import scipy.optimize as opt
-# <codecell>
-outpath = os.getcwd() #"/home/rannikko/git/"
-outfile = "test4.csv"
-outputfile = os.path.join(outpath, outfile)
-# <codecell>
+
+# Set output file paths
+OUTPATH = os.getcwd() #"/home/rannikko/git/"
+OUTFILE = "test4.csv"
+OUTPUTFILE = os.path.join(OUTPATH, OUTFILE)
+STORM_PICKLE = 'temp_storms4.npy'
+N_SAMPLES = 50000*30
+
+# Define functions to sample wave parameter distributions
 def interim_func(Gi, te, rnv):
     # Model data fit: alpha=1.498, beta=-0.348, gamma=1.275
     # Callaghan et al. used: alpha=21.46, beta=1.08, gamma=1.07
@@ -37,7 +40,6 @@ def interim_func(Gi, te, rnv):
 
     s = eval(f.format(a,b,c))
     return s
-
 
 def get_interim(rnv,te):
     '''Estimate time between storms based on a non-homogeneous Poisson 
@@ -75,7 +77,6 @@ def get_hsig(rnv):
     c = -0.17228
     loc = 3.1125
     scale = 1.2256
-    #rnv_copulaized = hsig_storm_len_copula(rnv, storm_len) 
     hsig = loc + ((1-rnv)**-c - 1) * scale/c  
     #hsig = st.genpareto.rvs(c=c, loc=loc, scale=scale, discrete=True)
     return hsig
@@ -85,28 +86,25 @@ def get_a_hsig(rnv):
     c = -0.21576
     loc = 3.0766
     scale = 0.59362
-    #rnv_copulaized = a_hsig_hsig_copula(rnv, hsig) 
     a_hsig = loc + ((1-rnv)**-c - 1) * scale/c 
     #hsig = st.genpareto.rvs(c=c, loc=loc, scale=scale, discrete=True)
     return a_hsig
 
 def get_tps(rnv):
-    '''Modeled as a Frechet distribution'''
+    '''Dominant wave period modeled as a Frechet distribution'''
     c = 10.503
     loc = -4.9823
     scale = 13.506
-    #rnv_copulaized = tps__hsig_copula(rnv, hsig)
     tps = loc - scale*-(abs(np.log(rnv))**(-1/c))
     #tps2 = st.genextreme.rvs(c=-0.08, loc=8.58, scale=1.31, discrete=False)
     #tps = [tps1, tps2]
     return tps
 
 def get_a_tps(rnv):
-    '''Modeled as a Frechet distribution'''
+    '''Average dominant wave period modeled as a Frechet distribution'''
     c = 12.409
     loc = -5.2135
     scale = 13.723
-    #rnv_copulaized = tps__hsig_copula(rnv, hsig)
     a_tps = loc - scale*-(abs(np.log(rnv))**(-1/c))    
     #a_tps2 = st.genextreme.rvs(c=-0.08, loc=8.55, scale=1.12, discrete=False)
     #a_tps = [a_tps1, a_tps2]
@@ -129,124 +127,135 @@ def get_direction(rnv1, rnv2):
     degrees from shore normal. 
     A. Haghighat 'Monte Carlo Methods for Particle Transport' CRC Press 2015'''
     wave_angles = np.load('wave_angles.npy')
-    len_wa = 72-1 # Length of wave angle observations minus 1
+    len_wa = len(wave_angles)-1 # Length of wave angle observations minus 1
     i = int(len_wa*rnv1)
     direction = wave_angles[i]+rnv2*(wave_angles[i+1]-wave_angles[i])
     return direction
     
-# <codecell>
-#%%time
-import chaospy as cp
-#import pandas as pd
-n_samples = 50000*30
+# Define the generator function
+def generate_storms():
+    # Import required modules
+    import chaospy as cp
+    
+    # Generate a joint probability distribution function
+    joint = cp.J(cp.Uniform(lo=0,up=1),
+                 cp.Uniform(lo=0,up=1),
+                 cp.Uniform(lo=0,up=1),
+                 cp.Uniform(lo=0,up=1),
+                 cp.Uniform(lo=0,up=1)
+                )
+    # Use the Clayton Copula to define the dependency structure
+    clayton = cp.Clayton(joint, theta=2) #why 2?
+    # Sample the joint probability distribution function with Clayton Copula
+    # dependency to generate N_SAMPLES of random variables
+    samples = clayton.sample(size=N_SAMPLES)
+    # Generate N_SAMPLES of independent, uniform random variables
+    independent = [cp.Uniform(lo=0,up=1).sample(size=N_SAMPLES),
+                   cp.Uniform(lo=0,up=1).sample(size=N_SAMPLES),
+                   cp.Uniform(lo=0,up=1).sample(size=N_SAMPLES),
+                   cp.Uniform(lo=0,up=1).sample(size=N_SAMPLES)
+                  ]
+    # Place random variables in a dictionary for easy access
+    rnv = {'length':samples[0],
+           'hsig':samples[1],
+           'a_hsig':samples[2],
+           'tps':samples[3],
+           'a_tps':samples[4],
+           'interim':independent[0], #needs to be reformulated
+           'tide':independent[1],
+           'direction1':independent[2],
+           'direction2':independent[3]
+          }
+    
+    # Create a pandas dataframe to contain the simulated storms
+    storms = pd.DataFrame()
+    storms = storms.append({'length':0,
+                            'hsig':0,
+                            'a_hsig':0,
+                            'tps':0,
+                            'a_tps':0,
+                            'interim':0,
+                            'tide':0,
+                            'time_end':0,
+                            'direction':0},
+                            ignore_index=True)
+    
+    # Generate N_SAMPLES storms and append each to the pandas dataframe
+    for i in range(N_SAMPLES):
+        storm = {'length':get_storm_len(rnv['length'][i]),
+                 'hsig':get_hsig(rnv['hsig'][i]),
+                 'a_hsig':get_a_hsig(rnv['a_hsig'][i]),                  
+                 'tps':get_tps(rnv['tps'][i]),                  
+                 'a_tps':get_a_tps(rnv['a_tps'][i]),
+                 'interim':get_interim(rnv['interim'][i],storms['time_end'][i]),
+                 'tide':get_tide(rnv['tide'][i]),
+                 'direction':get_direction(rnv['direction1'][i],
+                                           rnv['direction2'][i])
+                }
+        storms = storms.append(storm, ignore_index=True)
+        # Update running cumulative time (hrs)
+        storms['time_end'][i+1] = storms['time_end'][i] + \
+                                  storms['interim'][i] + \
+                                  storms['length'][i]
 
-joint = cp.J(cp.Uniform(lo=0,up=1),
-             cp.Uniform(lo=0,up=1),
-             cp.Uniform(lo=0,up=1),
-             cp.Uniform(lo=0,up=1),
-             cp.Uniform(lo=0,up=1)
-            )
-clayton = cp.Clayton(joint, theta=2) #why 2?
-samples = clayton.sample(size=n_samples)
-independent = [cp.Uniform(lo=0,up=1).sample(size=n_samples),
-               cp.Uniform(lo=0,up=1).sample(size=n_samples),
-               cp.Uniform(lo=0,up=1).sample(size=n_samples),
-               cp.Uniform(lo=0,up=1).sample(size=n_samples)
-              ]
-rnv = {'length':samples[0],
-       'hsig':samples[1],
-       'a_hsig':samples[2],
-       'tps':samples[3],
-       'a_tps':samples[4],
-       'interim':independent[0], #needs to be reformulated
-       'tide':independent[1],
-       'direction1':independent[2],
-       'direction2':independent[3]
-      }
+    # Drop the initial empty storm instance from the dataframe of synthetic 
+    # storms
+    storms = storms.drop(storms.index[[0]])
 
-storms = pd.DataFrame()
-storms = storms.append({'length':0,
-                        'hsig':0,
-                        'a_hsig':0,
-                        'tps':0,
-                        'a_tps':0,
-                        'interim':0,
-                        'tide':0,
-                        'time_end':0,
-                        'direction':0},
-                        ignore_index=True)
-
-for i in range(n_samples):
-    storm = {'length':get_storm_len(rnv['length'][i]),
-             'hsig':get_hsig(rnv['hsig'][i]),
-             'a_hsig':get_a_hsig(rnv['a_hsig'][i]),                  
-             'tps':get_tps(rnv['tps'][i]),                  
-             'a_tps':get_a_tps(rnv['a_tps'][i]),
-             'interim':get_interim(rnv['interim'][i],storms['time_end'][i]),
-             'tide':get_tide(rnv['tide'][i]),
-             'direction':get_direction(rnv['direction1'][i],
-                                       rnv['direction2'][i])
-            }
-    storms = storms.append(storm, ignore_index=True)
-    storms['time_end'][i+1] = storms['time_end'][i] + \
-                              storms['interim'][i] + \
-                              storms['length'][i]     
-storms = storms.drop(storms.index[[0]])
-
-# <codecell>
-#df = pd.DataFrame([storms.hsig,storms.tps,storms.tide,storms.length,storms.interim])
-#df = df.T
-#pd.tools.plotting.scatter_matrix(df,alpha=0.3)
+    # Create a scatter matrix of the synthesized storm parameters
+    #df = pd.DataFrame([storms.hsig,storms.tps,storms.tide,storms.length,storms.interim])
+    #df = df.T
+    #pd.tools.plotting.scatter_matrix(df,alpha=0.3)
+    return storms
          
-# <codecell>
-#rnv = 1-exp(integ)
-#storms
-   
-# <codecell>
-#i = 0
-#Time = [0]
-#max_time = 1000*8766
+def save_storms(storms):
+    i = 0
+    Time = [0]
+    with open(OUTPUTFILE, 'w') as outfile:
+        header = " interim,  length,    tide,    hsig,\
+                    a_hsig,     tps,   a_tps,   angle\n"
+        outfile.write(header)
+        for storm in storms.T:
+            raw_line = "{:>8},{:>8},{:>8.3f},{:>8.2f},\
+                        {:>8.2f},{:>8.2f},{:>8.2f},{:>8.1f}\n"
+            line = raw_line.format(storms['interim'][storm],
+                                   storms['length'][storm],
+                                   storms['tide'][storm],
+                                   storms['hsig'][storm],
+                                   storms['a_hsig'][storm],
+                                   storms['tps'][storm],
+                                   storms['a_tps'][storm],
+                                   storms['direction'][storm])
+            outfile.write(line)
+            
+            Time.append(Time[i]+storms['interim'][storm]+storms['length'][storm])
+            i += 1
+    outfile.close()
+    pd.to_pickle(storms, STORM_PICKLE)
+    
+    '''
+    # Generate 3D scatter plots of storm parameters
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    fig = plt.figure(1,figsize=(10,10))
+    ax = fig.add_subplot(111, projection='3d')
+    cmpair = plt.cm.get_cmap('Paired')
+    colors = [np.random.random() for i in range(0,n_samples)]
+    for storm in storms:
+        ax.scatter(storms['hsig'][:],
+                   storms['tps'][:],
+                    storms['length'][:],
+                    'o',
+                    c=colors,
+                    cmap=cmpair,
+                    alpha=0.5)
+    fig.show()
+    '''
 
-# <codecell>
-#%%timeit
-i = 0
-Time = [0]
-with open(outputfile, 'w') as outfile:
-    header = " interim,  length,    tide,    hsig,\
-                a_hsig,     tps,   a_tps,   angle\n"
-    outfile.write(header)
-    for storm in storms.T:
-        raw_line = "{:>8},{:>8},{:>8.3f},{:>8.2f},\
-                    {:>8.2f},{:>8.2f},{:>8.2f},{:>8.1f}\n"
-        line = raw_line.format(storms['interim'][storm],
-                               storms['length'][storm],
-                               storms['tide'][storm],
-                               storms['hsig'][storm],
-                               storms['a_hsig'][storm],
-                               storms['tps'][storm],
-                               storms['a_tps'][storm],
-                               storms['direction'][storm])
-        outfile.write(line)
-        
-        Time.append(Time[i]+storms['interim'][storm]+storms['length'][storm])
-        i += 1
-outfile.close()
-pd.to_pickle(storms, 'temp_storms4.npy')
-# <codecell>
-'''
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-fig = plt.figure(1,figsize=(10,10))
-ax = fig.add_subplot(111, projection='3d')
-cmpair = plt.cm.get_cmap('Paired')
-colors = [np.random.random() for i in range(0,n_samples)]
-for storm in storms:
-    ax.scatter(storms['hsig'][:],
-               storms['tps'][:],
-                storms['length'][:],
-                'o',
-                c=colors,
-                cmap=cmpair,
-                alpha=0.5)
-fig.show()
-'''
+# Define the main function
+def main():
+    storms = generate_storms()
+    save_storms(storms)
+    
+if __name__ == "__main__":
+    main()
